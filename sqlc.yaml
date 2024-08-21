@@ -1,0 +1,14 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "./db/query"
+    schema: "./db/migrations"
+    database:
+      uri: postgresql://postgres:password@localhost:5432/cedar-bank
+    gen:
+      go:
+        package: "db"
+        out: "./db/sqlc"
+        sql_package: "pgx/v5"
+        emit_prepared_queries: true
+        emit_json_tags: true
