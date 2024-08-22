@@ -9,4 +9,6 @@ migrate:
 	migrate -path db/migrations/ -database "postgresql://postgres:password@localhost:5432/cedar-bank?sslmode=disable" -verbose up
 sqlc:
 	sqlc generate
+test:
+	go test -v -cover ./...
 .PHONY: createdb dropdb postgres migrate sqlc
