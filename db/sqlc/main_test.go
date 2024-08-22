@@ -13,7 +13,7 @@ const (
 	dbSource = "postgresql://postgres:password@localhost:5432/cedar-bank?sslmode=disable"
 )
 
-var testQueries *Queries
+var testQueries *Store
 
 func TestMain(m *testing.M) {
 	conn, err := pgxpool.New(context.Background(), dbSource)
@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	}
 	defer conn.Close()
 
-	testQueries = New(conn)
+	testQueries = NewStore(conn)
 
 	os.Exit(m.Run())
 }
