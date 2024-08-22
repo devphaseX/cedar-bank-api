@@ -99,13 +99,13 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 				Valid: true,
 			},
 			ToAccountID: pgtype.Int8{
-				Int64: arg.FromAccountID,
+				Int64: arg.ToAccountID,
 				Valid: true,
 			},
 			Amount: arg.Amount,
 		}
 
-		txResult.Transfer, err = s.CreateTransfer(ctx, tpArg)
+		transfer, err := s.CreateTransfer(ctx, tpArg)
 
 		if err != nil {
 			return err
@@ -113,6 +113,10 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 
 		fromEntryBalanceEntryParams := CreateBalanceEntryParams{
 			Amount: -arg.Amount,
+			AccountID: pgtype.Int8{
+				Int64: fromAccount.ID,
+				Valid: true,
+			},
 		}
 
 		fromEntry, err := s.CreateBalanceEntry(ctx, fromEntryBalanceEntryParams)
@@ -123,6 +127,10 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 
 		toEntryBalanceEntryParams := CreateBalanceEntryParams{
 			Amount: arg.Amount,
+			AccountID: pgtype.Int8{
+				Int64: toAccount.ID,
+				Valid: true,
+			},
 		}
 
 		toEntry, err := s.CreateBalanceEntry(ctx, toEntryBalanceEntryParams)
@@ -133,6 +141,7 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 
 		fromAccountBalance := UpdateBalanceParams{
 			Balance: fromAccount.Balance - arg.Amount,
+			ID:      fromAccount.ID,
 		}
 
 		fromAccount, err = s.UpdateBalance(ctx, fromAccountBalance)
@@ -142,7 +151,8 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 		}
 
 		toAccountBalance := UpdateBalanceParams{
-			Balance: fromAccount.Balance - arg.Amount,
+			Balance: toAccount.Balance + arg.Amount,
+			ID:      toAccount.ID,
 		}
 
 		toAccount, err = s.UpdateBalance(ctx, toAccountBalance)
@@ -152,9 +162,10 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 		}
 
 		txResult.FromAccount = fromAccount
-		txResult.FromAccount = toAccount
+		txResult.ToAccount = toAccount
 		txResult.FromEntry = fromEntry
 		txResult.ToEntry = toEntry
+		txResult.Transfer = transfer
 
 		return err
 	})
