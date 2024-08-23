@@ -134,7 +134,6 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 			return err
 		}
 
-		fmt.Println(result.RowsAffected())
 		if result.RowsAffected() != 2 {
 			return errors.New("failed to update both accounts")
 		}

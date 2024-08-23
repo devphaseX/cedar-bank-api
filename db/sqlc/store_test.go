@@ -52,7 +52,7 @@ func TestFundTransfer(t *testing.T) {
 	close(errs)
 	close(results)
 
-	// exist := map[int]bool{}
+	exist := map[int]bool{}
 	// Check results
 	for i := 0; i < n; i++ {
 		err := <-errs
@@ -95,8 +95,8 @@ func TestFundTransfer(t *testing.T) {
 
 		k := int(diff1 / amount)
 		require.True(t, k >= 1 && k <= n)
-		// require.NotContains(t, exist, k)
-		// exist[k] = true
+		require.NotContains(t, exist, k)
+		exist[k] = true
 
 	}
 	updatedAccount1, err := store.GetAccountByID(context.Background(), account1.ID)
@@ -107,4 +107,67 @@ func TestFundTransfer(t *testing.T) {
 	require.Equal(t, account1.Balance-float64(n)*amount, updatedAccount1.Balance)
 	require.Equal(t, account2.Balance+float64(n)*amount, updatedAccount2.Balance)
 
+}
+
+func TestFundTransferDeadlock(t *testing.T) {
+	store := testQueries
+
+	account1 := createRandomAccount(t)
+	account2 := createRandomAccount(t)
+
+	n := 10
+	var amount float64 = 10
+
+	errs := make(chan error, n)
+
+	// fmt.Printf("before: acct1 %v acct2 %v\n", account1.Balance, account2.Balance)
+
+	// Use a WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		ctx := context.Background()
+		fromAccountID := account1.ID
+		toAccountID := account2.ID
+
+		if i%2 == 1 {
+			fromAccountID = account2.ID
+			toAccountID = account1.ID
+		}
+
+		go func(i int) {
+			defer wg.Done()
+
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			_, err := store.TransferTx(ctx, TransferTxParams{
+				FromAccountID: fromAccountID,
+				ToAccountID:   toAccountID,
+				Amount:        amount,
+			})
+
+			errs <- err
+
+		}(i)
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	close(errs)
+
+	for i := 0; i < n; i++ {
+		err := <-errs
+
+		require.NoError(t, err)
+
+	}
+	updatedAccount1, err := store.GetAccountByID(context.Background(), account1.ID)
+	require.NoError(t, err)
+	updatedAccount2, err := store.GetAccountByID(context.Background(), account2.ID)
+	require.NoError(t, err)
+
+	require.Equal(t, account1.Balance, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance, updatedAccount2.Balance)
 }
