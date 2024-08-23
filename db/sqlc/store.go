@@ -58,14 +58,11 @@ type TransferTxResult struct {
 }
 
 func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*TransferTxResult, error) {
-	var (
-		txResult TransferTxResult
-		err      error
-	)
-
-	err = s.execTx(ctx, func(*Queries) error {
+	var txResult TransferTxResult
+	err := s.execTx(ctx, func(q *Queries) error {
 		var err error
-		fromAccount, err := s.GetAccountByID(ctx, arg.FromAccountID)
+
+		fromAccount, err := s.GetAccountByIDForUpdate(ctx, arg.FromAccountID)
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -77,11 +74,14 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 			return err
 		}
 
-		if fromAccount.Balance < arg.Amount {
-			return errors.New("sender balance not sufficient for this transaction")
+		// Check if the sender has sufficient funds
+		senderBalance := fromAccount.Balance
+
+		if senderBalance < arg.Amount {
+			return errors.New("insufficient funds for transfer")
 		}
 
-		toAccount, err := s.GetAccountByID(ctx, arg.ToAccountID)
+		_, err = s.GetAccountByIDForUpdate(ctx, arg.ToAccountID)
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -93,81 +93,64 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (*Transfer
 			return err
 		}
 
-		tpArg := CreateTransferParams{
-			FromAccountID: pgtype.Int8{
-				Int64: arg.FromAccountID,
-				Valid: true,
-			},
-			ToAccountID: pgtype.Int8{
-				Int64: arg.ToAccountID,
-				Valid: true,
-			},
-			Amount: arg.Amount,
-		}
-
-		transfer, err := s.CreateTransfer(ctx, tpArg)
+		// Create transfer
+		transfer, err := q.CreateTransfer(ctx, CreateTransferParams{
+			FromAccountID: pgtype.Int8{Int64: arg.FromAccountID, Valid: true},
+			ToAccountID:   pgtype.Int8{Int64: arg.ToAccountID, Valid: true},
+			Amount:        arg.Amount,
+		})
 
 		if err != nil {
 			return err
 		}
-
-		fromEntryBalanceEntryParams := CreateBalanceEntryParams{
-			Amount: -arg.Amount,
-			AccountID: pgtype.Int8{
-				Int64: fromAccount.ID,
-				Valid: true,
-			},
-		}
-
-		fromEntry, err := s.CreateBalanceEntry(ctx, fromEntryBalanceEntryParams)
-
-		if err != nil {
-			return err
-		}
-
-		toEntryBalanceEntryParams := CreateBalanceEntryParams{
-			Amount: arg.Amount,
-			AccountID: pgtype.Int8{
-				Int64: toAccount.ID,
-				Valid: true,
-			},
-		}
-
-		toEntry, err := s.CreateBalanceEntry(ctx, toEntryBalanceEntryParams)
-
-		if err != nil {
-			return err
-		}
-
-		fromAccountBalance := UpdateBalanceParams{
-			Balance: fromAccount.Balance - arg.Amount,
-			ID:      fromAccount.ID,
-		}
-
-		fromAccount, err = s.UpdateBalance(ctx, fromAccountBalance)
-
-		if err != nil {
-			return err
-		}
-
-		toAccountBalance := UpdateBalanceParams{
-			Balance: toAccount.Balance + arg.Amount,
-			ID:      toAccount.ID,
-		}
-
-		toAccount, err = s.UpdateBalance(ctx, toAccountBalance)
-
-		if err != nil {
-			return err
-		}
-
-		txResult.FromAccount = fromAccount
-		txResult.ToAccount = toAccount
-		txResult.FromEntry = fromEntry
-		txResult.ToEntry = toEntry
 		txResult.Transfer = transfer
 
-		return err
+		// Create entries
+		txResult.FromEntry, err = q.CreateBalanceEntry(ctx, CreateBalanceEntryParams{
+			AccountID: pgtype.Int8{Int64: arg.FromAccountID, Valid: true},
+			Amount:    -arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+
+		txResult.ToEntry, err = q.CreateBalanceEntry(ctx, CreateBalanceEntryParams{
+			AccountID: pgtype.Int8{Int64: arg.ToAccountID, Valid: true},
+			Amount:    arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+
+		updateTransferAccountBal := UpdateTransferAccountBalanceParams{
+			FromAccountID: arg.FromAccountID,
+			ToAccountID:   arg.ToAccountID,
+			Amount:        arg.Amount,
+		}
+		// Update both account balances in a single query
+
+		result, err := q.UpdateTransferAccountBalance(ctx, updateTransferAccountBal)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(result.RowsAffected())
+		if result.RowsAffected() != 2 {
+			return errors.New("failed to update both accounts")
+		}
+
+		// Fetch updated accounts
+		txResult.FromAccount, err = q.GetAccountByID(ctx, arg.FromAccountID)
+		if err != nil {
+			return err
+		}
+
+		txResult.ToAccount, err = q.GetAccountByID(ctx, arg.ToAccountID)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 
 	if err != nil {

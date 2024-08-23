@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -54,6 +55,25 @@ LIMIT 1
 
 func (q *Queries) GetAccountByID(ctx context.Context, id int64) (Account, error) {
 	row := q.db.QueryRow(ctx, getAccountByID, id)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAccountByIDForUpdate = `-- name: GetAccountByIDForUpdate :one
+SELECT id, owner, balance, currency, created_at FROM accounts
+WHERE id = $1
+LIMIT 1 FOR NO KEY UPDATE
+`
+
+func (q *Queries) GetAccountByIDForUpdate(ctx context.Context, id int64) (Account, error) {
+	row := q.db.QueryRow(ctx, getAccountByIDForUpdate, id)
 	var i Account
 	err := row.Scan(
 		&i.ID,
@@ -134,4 +154,24 @@ func (q *Queries) UpdateBalance(ctx context.Context, arg UpdateBalanceParams) (A
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const updateTransferAccountBalance = `-- name: UpdateTransferAccountBalance :execresult
+UPDATE accounts
+SET balance =
+CASE
+    WHEN id = $1 THEN balance - $2
+    WHEN id = $3 THEN balance + $2
+END
+WHERE id IN ($1, $3)
+`
+
+type UpdateTransferAccountBalanceParams struct {
+	FromAccountID int64   `json:"from_account_id"`
+	Amount        float64 `json:"amount"`
+	ToAccountID   int64   `json:"to_account_id"`
+}
+
+func (q *Queries) UpdateTransferAccountBalance(ctx context.Context, arg UpdateTransferAccountBalanceParams) (pgconn.CommandTag, error) {
+	return q.db.Exec(ctx, updateTransferAccountBalance, arg.FromAccountID, arg.Amount, arg.ToAccountID)
 }
