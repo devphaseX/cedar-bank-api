@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -95,11 +94,4 @@ func TestFundTransfer(t *testing.T) {
 			require.True(t, k >= 1 && k <= n)
 		}
 	}
-	// Check final account balances
-	updatedAccount1, err := testQueries.GetAccountByID(context.Background(), account1.ID)
-	require.NoError(t, err)
-	updatedAccount2, err := testQueries.GetAccountByID(context.Background(), account2.ID)
-	require.NoError(t, err)
-	fmt.Printf("After transfers: Account1 Balance: %v, Account2 Balance: %v\n",
-		updatedAccount1.Balance, updatedAccount2.Balance)
 }
