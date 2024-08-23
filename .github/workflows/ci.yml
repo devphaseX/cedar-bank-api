@@ -20,7 +20,6 @@ jobs:
         # Provide the password for postgres
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: secret
           POSTGRES_DB: cedar-bank
         # Set health checks to wait until postgres has started
         options: >-
