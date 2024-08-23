@@ -32,7 +32,6 @@ func createRandomAccount(t *testing.T) Account {
 
 	require.NotZero(t, account.ID)
 	require.NotZero(t, account.CreatedAt)
-
 	return account
 }
 
@@ -94,7 +93,7 @@ func TestDeleteAccount(t *testing.T) {
 
 func TestListAccount(t *testing.T) {
 	accounts := make([]Account, 0, 10)
-	l := len(accounts)
+	l := cap(accounts)
 	for i := 0; i < l; i++ {
 		account := createRandomAccount(t)
 		accounts = append(accounts, account)
@@ -102,7 +101,7 @@ func TestListAccount(t *testing.T) {
 
 	arg := GetAccountsParams{
 		Limit:  5,
-		Offset: 0,
+		Offset: 5,
 	}
 
 	queriedAccounts, err := testQueries.GetAccounts(context.Background(), arg)
