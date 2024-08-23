@@ -6,7 +6,7 @@ dropdb:
 	docker exec -it postgres-container dropdb --username=postgres -f cedar-bank
 
 migrate:
-	migrate -path db/migrations/ -database "postgresql://postgres:password@localhost:5432/cedar-bank?sslmode=disable" -verbose up
+	migrate -path db/migrations/ -database "postgresql://postgres:secret@localhost:5432/cedar-bank?sslmode=disable" -verbose up
 sqlc:
 	sqlc generate
 test:
