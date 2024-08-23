@@ -16,4 +16,7 @@ sqlc:
 test:
 		go test -v -cover -parallel 1 ./...
 
+server:
+	go run .
+
 .PHONY: createdb dropdb postgres migrate sqlc

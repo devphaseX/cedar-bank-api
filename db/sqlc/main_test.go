@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	testQueries *Store
+	testQueries Store
 	testDB      *pgxpool.Pool
 )
 

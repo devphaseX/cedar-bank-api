@@ -46,7 +46,7 @@ func (q *Queries) GetAccountBalanceEntries(ctx context.Context, accountID pgtype
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Entry
+	items := []Entry{}
 	for rows.Next() {
 		var i Entry
 		if err := rows.Scan(
