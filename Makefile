@@ -1,14 +1,19 @@
 postgres:
-	docker run --name postgres -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres
+    docker run --name postgres-container -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -d postgres
+
 createdb:
-	docker exec -it postgres-container createdb --username=postgres --owner=postgres cedar-bank
+		docker exec -it postgres-container createdb --username=postgres --owner=postgres cedar-bank
+
 dropdb:
-	docker exec -it postgres-container dropdb --username=postgres -f cedar-bank
+		docker exec -it postgres-container dropdb --username=postgres cedar-bank
 
 migrate:
-	migrate -path db/migrations/ -database "postgresql://postgres:secret@localhost:5432/cedar-bank?sslmode=disable" -verbose up
+		migrate -path db/migrations/ -database "postgresql://postgres:password@localhost:5432/cedar-bank?sslmode=disable" -verbose up
+
 sqlc:
-	sqlc generate
+		sqlc generate
+
 test:
-	go test -v -cover -parallel 1 ./...
+		go test -v -cover -parallel 1 ./...
+
 .PHONY: createdb dropdb postgres migrate sqlc
