@@ -19,8 +19,8 @@ jobs:
         image: postgres
         # Provide the password for postgres
         env:
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD: secret
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
           POSTGRES_DB: cedar-bank
         # Set health checks to wait until postgres has started
         options: >-
