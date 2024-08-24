@@ -6,6 +6,13 @@ type FailedResponse struct {
 }
 
 func errorResponse(err error) FailedResponse {
+	if unwrapErr, ok := err.(interface{ Unwrap() []error }); ok {
+		errs := unwrapErr.Unwrap()
+		if len(errs) > 0 {
+			// Use the first error in the slice for the message
+			err = errs[0]
+		}
+	}
 	return FailedResponse{Status: false, Error: err.Error()}
 }
 

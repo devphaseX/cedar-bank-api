@@ -14,7 +14,7 @@ type TransferRequest struct {
 	Amount        float64 `json:"amount"`
 }
 
-func (s *Server) transfer(ctx *gin.Context) {
+func (s *Server) transferTx(ctx *gin.Context) {
 	var req TransferRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -31,12 +31,12 @@ func (s *Server) transfer(ctx *gin.Context) {
 	tx, err := s.store.TransferTx(ctx, arg)
 
 	if err != nil {
-		if errors.As(err, db.ErrAccountNotFound) {
+		if errors.As(err, &db.ErrAccountNotFound) {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
 
-		if errors.As(err, db.ErrFundNotSufficient) {
+		if errors.As(err, &db.ErrFundNotSufficient) {
 			ctx.JSON(http.StatusForbidden, errorResponse(err))
 			return
 		}
