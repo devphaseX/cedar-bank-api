@@ -5,7 +5,7 @@ createdb:
 		docker exec -it postgres-container createdb --username=postgres --owner=postgres cedar-bank
 
 dropdb:
-		docker exec -it postgres-container dropdb --username=postgres cedar-bank
+		docker exec -it postgres-container dropdb --username=postgres cedar-bank -f
 
 migrate:
 		migrate -path db/migrations/ -database "postgresql://postgres:password@localhost:5432/cedar-bank?sslmode=disable" -verbose up

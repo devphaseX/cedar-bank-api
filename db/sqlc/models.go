@@ -10,7 +10,7 @@ import (
 
 type Account struct {
 	ID        int64              `json:"id"`
-	Owner     string             `json:"owner"`
+	OwnerID   int64              `json:"owner_id"`
 	Balance   float64            `json:"balance"`
 	Currency  string             `json:"currency"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
@@ -30,4 +30,14 @@ type Transfer struct {
 	// amount must be positive
 	Amount    float64            `json:"amount"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type User struct {
+	ID                int64              `json:"id"`
+	Username          string             `json:"username"`
+	Email             string             `json:"email"`
+	Fullname          string             `json:"fullname"`
+	HashedPassword    string             `json:"hashed_password"`
+	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 }

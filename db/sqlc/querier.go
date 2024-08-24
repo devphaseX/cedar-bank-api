@@ -15,12 +15,15 @@ type Querier interface {
 	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
 	CreateBalanceEntry(ctx context.Context, arg CreateBalanceEntryParams) (Entry, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAccount(ctx context.Context, id int64) error
 	GetAccountBalanceEntries(ctx context.Context, accountID pgtype.Int8) ([]Entry, error)
 	GetAccountByID(ctx context.Context, id int64) (Account, error)
 	GetAccountByIDForUpdate(ctx context.Context, id int64) (Account, error)
 	GetAccounts(ctx context.Context, arg GetAccountsParams) ([]Account, error)
 	GetBalanceEntry(ctx context.Context, id int64) (Entry, error)
+	GetUserByUniqueID(ctx context.Context, arg GetUserByUniqueIDParams) (User, error)
+	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
 	UpdateBalance(ctx context.Context, arg UpdateBalanceParams) (Account, error)
 	UpdateTransferAccountBalance(ctx context.Context, arg UpdateTransferAccountBalanceParams) (pgconn.CommandTag, error)
 }
