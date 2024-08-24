@@ -1,19 +1,23 @@
 package api
 
 type FailedResponse struct {
-	Status bool   `json:"status"`
-	Error  string `json:"error"`
+	Status bool `json:"status"`
+	Error  any  `json:"error"`
 }
 
-func errorResponse(err error) FailedResponse {
-	if unwrapErr, ok := err.(interface{ Unwrap() []error }); ok {
-		errs := unwrapErr.Unwrap()
-		if len(errs) > 0 {
-			// Use the first error in the slice for the message
-			err = errs[0]
+func errorResponse(err any) FailedResponse {
+	if err, ok := err.(error); ok {
+		if unwrapErr, ok := err.(interface{ Unwrap() []error }); ok {
+			errs := unwrapErr.Unwrap()
+			if len(errs) > 0 {
+				// Use the first error in the slice for the message
+				err = errs[0]
+			}
 		}
+		return FailedResponse{Status: false, Error: err.Error()}
 	}
-	return FailedResponse{Status: false, Error: err.Error()}
+
+	return FailedResponse{Status: false, Error: err}
 }
 
 type SuccessResponse struct {

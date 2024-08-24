@@ -7,22 +7,23 @@ import (
 
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type TransferRequest struct {
-	FromAccountID int64   `json:"from_account_id,required"`
-	ToAccountID   int64   `json:"to_account_id,required"`
-	Amount        float64 `json:"amount,required"`
-	Currency      string  `json:"currency,required" binding:"oneof=USD EUR CAD"`
+	FromAccountID int64   `json:"from_account_id" binding:"required"`
+	ToAccountID   int64   `json:"to_account_id" binding:"required"`
+	Amount        float64 `json:"amount" binding:"required"`
+	Currency      string  `json:"currency" binding:"required,currency"`
 }
 
 var ErrFailed = errors.New("failed")
 
-func (s *Server) transferTx(ctx *gin.Context) {
+func (s *Server) createTransfer(ctx *gin.Context) {
 	var req TransferRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, prettyValidateError(err))
 		return
 	}
 
@@ -64,8 +65,8 @@ func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency str
 	account, err := s.store.GetAccountByID(ctx, accountID)
 
 	if err != nil {
-		if errors.Is(err, db.ErrAccountNotFound) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+		if errors.Is(err, pgx.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("account [%d] not found", accountID)))
 			return false
 		}
 
