@@ -76,7 +76,7 @@ func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*Transf
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return errors.Join(errors.New(
-					fmt.Sprintf("account with from_account_id '%d' not found", arg.FromAccountID),
+					fmt.Sprintf("account with '%d' not found", arg.FromAccountID),
 				), ErrAccountNotFound)
 			}
 
@@ -95,7 +95,7 @@ func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*Transf
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return errors.Join(errors.New(
-					fmt.Sprintf("account with to_account_id '%d' not found", arg.ToAccountID),
+					fmt.Sprintf("account with '%d' not found", arg.ToAccountID),
 				), ErrAccountNotFound)
 			}
 
