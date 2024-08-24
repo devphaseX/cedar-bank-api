@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/devphasex/cedar-bank-api/util"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -62,9 +63,9 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-var ErrFundNotSufficient = errors.New("insufficient funds for transfer")
-var ErrUnableUpdateAccount = errors.New("failed to update both accounts")
-var ErrAccountNotFound = errors.New("account not found")
+var ErrFundNotSufficient = util.NewCustomError("ErrFundNotSufficient", "insufficient funds for transfer")
+var ErrUnableUpdateAccount = util.NewCustomError("ErrUnableUpdateAccount", "failed to update both accounts")
+var ErrAccountNotFound = util.NewCustomError("ErrAccountNotFound", "account not found")
 
 func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*TransferTxResult, error) {
 	var txResult TransferTxResult
