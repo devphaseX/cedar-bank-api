@@ -15,7 +15,7 @@ type CreateAccountRequest struct {
 	Currency string `json:"currency" binding:"oneof=USD EUR CAD"`
 }
 
-func (s *Server) CreateAccount(ctx *gin.Context) {
+func (s *Server) createAccount(ctx *gin.Context) {
 	var req CreateAccountRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -40,10 +40,10 @@ func (s *Server) CreateAccount(ctx *gin.Context) {
 }
 
 type GetAccountByIdRequest struct {
-	ID int64 `uri:"id"`
+	ID int64 `uri:"id" binding:"min=1"`
 }
 
-func (s *Server) GetAccountByID(ctx *gin.Context) {
+func (s *Server) getAccountByID(ctx *gin.Context) {
 	var req GetAccountByIdRequest
 
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -71,7 +71,7 @@ type GetAccountList struct {
 	PerPage int32 `form:"per_page" binding:"required,min=5"`
 }
 
-func (s *Server) GetAccountList(ctx *gin.Context) {
+func (s *Server) getAccountList(ctx *gin.Context) {
 	var req GetAccountList
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {

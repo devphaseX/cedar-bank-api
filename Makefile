@@ -14,7 +14,7 @@ sqlc:
 		sqlc generate
 
 test:
-		go test -v -cover -parallel 1 ./...
+		go test -v -cover ./...
 
 server:
 	go run .
