@@ -62,6 +62,10 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
+var ErrFundNotSufficient = fmt.Errorf("insufficient funds for transfer")
+var ErrUnableUpdateAccount = fmt.Errorf("failed to update both accounts")
+var ErrAccountNotFound = fmt.Errorf("account not found")
+
 func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*TransferTxResult, error) {
 	var txResult TransferTxResult
 	err := s.execTx(ctx, func(q *Queries) error {
@@ -71,9 +75,9 @@ func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*Transf
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return errors.New(
+				return errors.Join(ErrAccountNotFound, errors.New(
 					fmt.Sprintf("account with from_account_id '%d' not found", arg.FromAccountID),
-				)
+				))
 			}
 
 			return err
@@ -83,16 +87,16 @@ func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*Transf
 		senderBalance := fromAccount.Balance
 
 		if senderBalance < arg.Amount {
-			return errors.New("insufficient funds for transfer")
+			return ErrFundNotSufficient
 		}
 
 		_, err = s.GetAccountByIDForUpdate(ctx, arg.ToAccountID)
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return errors.New(
+				return errors.Join(ErrAccountNotFound, errors.New(
 					fmt.Sprintf("account with to_account_id '%d' not found", arg.ToAccountID),
-				)
+				))
 			}
 
 			return err

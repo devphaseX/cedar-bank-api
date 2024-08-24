@@ -16,6 +16,10 @@ sqlc:
 test:
 		go test -v -cover ./...
 
+mock:
+		mockgen -destination db/mock/store.go -package mockdb github.com/devphasex/cedar-bank-api/db/sqlc Store
+
+
 server:
 	go run .
 
