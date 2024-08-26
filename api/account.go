@@ -8,10 +8,11 @@ import (
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type CreateAccountRequest struct {
-	Owner    string `json:"owner" binding:"min=3"`
+	OwnerID  int64  `json:"owner_id" binding:"min=1"`
 	Currency string `json:"currency" binding:"oneof=USD EUR CAD"`
 }
 
@@ -24,7 +25,7 @@ func (s *Server) createAccount(ctx *gin.Context) {
 	}
 
 	arg := db.CreateAccountParams{
-		OwnerID:  1,
+		OwnerID:  req.OwnerID,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -32,6 +33,17 @@ func (s *Server) createAccount(ctx *gin.Context) {
 	account, err := s.store.CreateAccount(ctx, arg)
 
 	if err != nil {
+		if err, ok := err.(*pgconn.PgError); ok {
+			switch err.ConstraintName {
+			case "fk_accounts_users":
+				ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("user with ID %d not found", arg.OwnerID)))
+				return
+			case "unique_owner_currency":
+				ctx.JSON(http.StatusConflict, errorResponse(fmt.Errorf("account already exists for user ID %d with currency %s", arg.OwnerID, arg.Currency)))
+				return
+			}
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

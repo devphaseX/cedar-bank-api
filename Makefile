@@ -14,7 +14,7 @@ sqlc:
 		sqlc generate
 
 test:
-		go test -v -cover ./...
+		go test -v -cover  -count 1 ./...
 
 mock:
 		mockgen -destination db/mock/store.go -package mockdb github.com/devphasex/cedar-bank-api/db/sqlc Store

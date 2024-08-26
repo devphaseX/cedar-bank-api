@@ -9,9 +9,6 @@ CREATE TABLE IF NOT EXISTS "users" (
   "created_at" timestamptz DEFAULT (now())
 );
 
--- Modify accounts table
-ALTER TABLE "accounts"
-  DROP COLUMN IF EXISTS "owner";
 
 -- Change column type for "currency"
 ALTER TABLE "accounts"
@@ -20,7 +17,7 @@ ALTER TABLE "accounts"
 -- Create new indexes
 CREATE INDEX IF NOT EXISTS idx_users_username ON "users" ("username");
 CREATE INDEX IF NOT EXISTS idx_users_email ON "users" ("email");
-CREATE INDEX IF NOT EXISTS idx_accounts_currency ON "accounts" ("currency");
+CREATE INDEX IF NOT EXISTS idx_accounts_currency ON "accounts" ("id", "currency");
 
--- Add foreign key if not exists
-ALTER TABLE "accounts" ADD CONSTRAINT fk_accounts_users FOREIGN KEY ("owner_id") REFERENCES "users" ("id");
+ALTER TABLE "accounts"
+ADD CONSTRAINT unique_owner_currency UNIQUE ("owner_id", "currency");

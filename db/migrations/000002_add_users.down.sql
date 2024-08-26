@@ -21,3 +21,6 @@ ALTER TABLE "accounts"
 
 -- Drop the "users" table created in the up migration
 DROP TABLE IF EXISTS "users";
+
+ALTER TABLE "accounts"
+DROP CONSTRAINT unique_owner_currency;
