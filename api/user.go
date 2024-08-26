@@ -52,7 +52,6 @@ func (s *Server) createUser(ctx *gin.Context) {
 		HashedPassword: passwordHashStr,
 		PasswordSalt:   passwordSaltStr,
 	}
-
 	user, err := s.store.CreateUser(ctx, arg)
 
 	if err != nil {

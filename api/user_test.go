@@ -26,6 +26,7 @@ func randomUser(t *testing.T) (db.User, string) {
 	require.NoError(t, err)
 	passwordHashStr, passwordSaltStr := hash.ArgonStringEncode(passwordHash)
 	return db.User{
+		ID:             util.RandomInt(2000, 2500),
 		Username:       util.RandomOwner(),
 		Email:          util.RandomEmail(),
 		Fullname:       util.RandomOwner(),
@@ -53,11 +54,12 @@ func TestCreateUserApi(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					GetAccountByID(gomock.Any(), gomock.Any()).
+					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).Return(user, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
+				require.Equal(t, http.StatusCreated, recorder.Code)
+				requireBodyMatchUser(t, recorder.Body, user)
 			},
 		},
 
@@ -71,8 +73,8 @@ func TestCreateUserApi(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					GetAccountByID(gomock.Any(), gomock.Any()).
-					Times(1).Return(db.Account{}, pgx.ErrTxClosed)
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).Return(db.User{}, pgx.ErrTxClosed)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -89,7 +91,7 @@ func TestCreateUserApi(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					GetAccountByID(gomock.Any(), gomock.Any()).
+					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).Return(db.User{}, &pgconn.PgError{
 					Code:           "23505",
 					ConstraintName: "users_username_key",
@@ -110,7 +112,7 @@ func TestCreateUserApi(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					GetAccountByID(gomock.Any(), gomock.Any()).
+					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).Return(db.User{}, &pgconn.PgError{
 					Code:           "23505",
 					ConstraintName: "users_email_key",
@@ -130,9 +132,10 @@ func TestCreateUserApi(t *testing.T) {
 
 			store := mockdb.NewMockStore(ctrl)
 
+			tc.buildStubs(store)
 			server := NewServer(store, nil)
 			recorder := httptest.NewRecorder()
-			url := "/auth/sign-in"
+			url := "/auth/sign-up"
 
 			b, _ := json.Marshal(tc.body)
 			body := bytes.NewBuffer(b)
@@ -141,7 +144,30 @@ func TestCreateUserApi(t *testing.T) {
 			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+
 		})
 	}
 
+}
+
+func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
+	var resp SuccessResponse
+	err := json.NewDecoder(body).Decode(&resp)
+
+	require.NoError(t, err)
+	require.True(t, resp.Status)
+
+	var gotUser CreateUserResponse
+	dataJSON, err := json.Marshal(resp.Data)
+
+	require.NoError(t, err)
+	err = json.Unmarshal(dataJSON, &gotUser)
+	require.NoError(t, err)
+	require.Equal(t, CreateUserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Fullname: user.Fullname,
+	}, gotUser)
 }
