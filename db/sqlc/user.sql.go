@@ -12,9 +12,9 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users(username, email, fullname, hashed_password)
-VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, fullname, hashed_password, password_changed_at, created_at
+INSERT INTO users(username, email, fullname, hashed_password, password_salt)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, username, email, fullname, hashed_password, password_salt, password_changed_at, created_at
 `
 
 type CreateUserParams struct {
@@ -22,6 +22,7 @@ type CreateUserParams struct {
 	Email          string `json:"email"`
 	Fullname       string `json:"fullname"`
 	HashedPassword string `json:"hashed_password"`
+	PasswordSalt   string `json:"password_salt"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -30,6 +31,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.Fullname,
 		arg.HashedPassword,
+		arg.PasswordSalt,
 	)
 	var i User
 	err := row.Scan(
@@ -38,6 +40,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.Fullname,
 		&i.HashedPassword,
+		&i.PasswordSalt,
 		&i.PasswordChangedAt,
 		&i.CreatedAt,
 	)
@@ -45,7 +48,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByUniqueID = `-- name: GetUserByUniqueID :one
-SELECT id, username, email, fullname, hashed_password, password_changed_at, created_at FROM users
+SELECT id, username, email, fullname, hashed_password, password_salt, password_changed_at, created_at FROM users
 WHERE id = $1
 or email ilike $2
 or username ilike $3
@@ -67,6 +70,7 @@ func (q *Queries) GetUserByUniqueID(ctx context.Context, arg GetUserByUniqueIDPa
 		&i.Email,
 		&i.Fullname,
 		&i.HashedPassword,
+		&i.PasswordSalt,
 		&i.PasswordChangedAt,
 		&i.CreatedAt,
 	)
@@ -74,7 +78,7 @@ func (q *Queries) GetUserByUniqueID(ctx context.Context, arg GetUserByUniqueIDPa
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, username, email, fullname, hashed_password, password_changed_at, created_at FROM users
+SELECT id, username, email, fullname, hashed_password, password_salt, password_changed_at, created_at FROM users
 WHERE ($3::int[] IS NULL OR id = ANY($3::int[]))
 OFFSET $1
 LIMIT $2
@@ -101,6 +105,7 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 			&i.Email,
 			&i.Fullname,
 			&i.HashedPassword,
+			&i.PasswordSalt,
 			&i.PasswordChangedAt,
 			&i.CreatedAt,
 		); err != nil {

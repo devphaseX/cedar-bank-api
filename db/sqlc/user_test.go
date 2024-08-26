@@ -6,15 +6,23 @@ import (
 	"time"
 
 	"github.com/devphasex/cedar-bank-api/util"
+	"github.com/devphasex/cedar-bank-api/util/hash"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomUser(t *testing.T) User {
+func createRandomUser(t *testing.T) (User, string) {
+	ag := hash.DefaultArgonHash()
+	password := util.RandomString(6)
+	passwordHash, err := ag.GenerateHash([]byte(password), nil)
+	hashedPasswordStr, saltStr := hash.ArgonStringEncode(passwordHash)
+
+	require.NoError(t, err)
 	arg := CreateUserParams{
 		Username:       util.RandomOwner(),
 		Fullname:       util.RandomOwner(),
-		HashedPassword: "secret",
+		HashedPassword: hashedPasswordStr,
+		PasswordSalt:   saltStr,
 		Email:          util.RandomEmail(),
 	}
 
@@ -35,7 +43,7 @@ func createRandomUser(t *testing.T) User {
 	require.NotZero(t, user.ID)
 	require.NotZero(t, user.CreatedAt)
 	require.True(t, user.PasswordChangedAt.Time.IsZero())
-	return user
+	return user, password
 }
 
 func TestCreateUser(t *testing.T) {
@@ -43,7 +51,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	user := createRandomUser(t)
+	user, _ := createRandomUser(t)
 	user2, err := testQueries.GetUserByUniqueID(context.Background(), GetUserByUniqueIDParams{
 		ID: pgtype.Int8{
 			Valid: true,

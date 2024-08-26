@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "email" varchar(255) UNIQUE NOT NULL,
   "fullname" varchar(255) NOT NULL,
   "hashed_password" text NOT NULL,
+  "password_salt" text NOT NULL,
   "password_changed_at" timestamptz,
   "created_at" timestamptz DEFAULT (now())
 );

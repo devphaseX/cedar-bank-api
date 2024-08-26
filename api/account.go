@@ -13,7 +13,7 @@ import (
 
 type CreateAccountRequest struct {
 	OwnerID  int64  `json:"owner_id" binding:"min=1"`
-	Currency string `json:"currency" binding:"oneof=USD EUR CAD"`
+	Currency string `json:"currency" binding:"oneof=currency"`
 }
 
 func (s *Server) createAccount(ctx *gin.Context) {

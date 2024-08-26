@@ -11,7 +11,7 @@ import (
 )
 
 func createRandomAccount(t *testing.T) Account {
-	user := createRandomUser(t)
+	user, _ := createRandomUser(t)
 	require.NotEmpty(t, user)
 	arg := CreateAccountParams{
 		OwnerID:  user.ID,

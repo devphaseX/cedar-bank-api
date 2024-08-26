@@ -38,6 +38,7 @@ type User struct {
 	Email             string             `json:"email"`
 	Fullname          string             `json:"fullname"`
 	HashedPassword    string             `json:"hashed_password"`
+	PasswordSalt      string             `json:"password_salt"`
 	PasswordChangedAt pgtype.Timestamptz `json:"password_changed_at"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 }
