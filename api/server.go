@@ -30,6 +30,8 @@ func NewServer(store db.Store, config *util.Config) *Server {
 	router.GET("/accounts/:id", server.getAccountByID)
 	router.GET("/accounts", server.getAccountList)
 	router.POST("/transfer", server.createTransfer)
+	router.POST("/auth/sign-up", server.createUser)
+	router.POST("/auth/sign-in", server.signin)
 	server.router = router
 
 	return server
