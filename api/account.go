@@ -65,14 +65,7 @@ func (s *Server) getAccountByID(ctx *gin.Context) {
 		return
 	}
 
-	authUser := Auth(ctx)
-
 	account, err := s.store.GetAccountByID(ctx, req.ID)
-
-	if account.OwnerID != authUser.UserId {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
-		return
-	}
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -81,6 +74,12 @@ func (s *Server) getAccountByID(ctx *gin.Context) {
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	authUser := Auth(ctx)
+	if account.OwnerID != authUser.UserId {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
 		return
 	}
 

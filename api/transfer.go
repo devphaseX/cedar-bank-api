@@ -39,16 +39,15 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	_, valid = s.validateAccount(ctx, arg.ToAccountID, req.Currency)
-
-	if !valid {
+	authUser := Auth(ctx)
+	if authUser.UserId != fromAccount.OwnerID {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
 		return
 	}
 
-	authUser := Auth(ctx)
+	_, valid = s.validateAccount(ctx, arg.ToAccountID, req.Currency)
 
-	if authUser.UserId != fromAccount.OwnerID {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
+	if !valid {
 		return
 	}
 
