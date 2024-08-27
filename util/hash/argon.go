@@ -39,6 +39,10 @@ type HashSalt struct {
 	Hash, Salt []byte
 }
 
+func (hs *HashSalt) EncodeBase64() (string, string) {
+	return ArgonStringEncode(hs)
+}
+
 func ArgonStringEncode(hs *HashSalt) (string, string) {
 	hashedPasswordStr := base64.StdEncoding.EncodeToString(hs.Hash)
 	saltStr := base64.StdEncoding.EncodeToString(hs.Salt)
@@ -83,6 +87,11 @@ func (a *Argon2idHash) Compare(hash, salt, password []byte) error {
 		return errors.New("hash doesn't match")
 	}
 	return nil
+}
+
+type ArgonHashPayload struct {
+	PasswordHash string
+	PasswordSalt string
 }
 
 func DefaultArgonHash() *Argon2idHash {

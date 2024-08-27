@@ -3,8 +3,10 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	mockdb "github.com/devphasex/cedar-bank-api/db/mock"
@@ -35,6 +37,43 @@ func randomUser(t *testing.T) (db.User, string) {
 	}, p
 }
 
+type eqCreateUserParams struct {
+	params   db.CreateUserParams
+	password string
+}
+
+func (e eqCreateUserParams) Matches(x interface{}) bool {
+	req, ok := x.(db.CreateUserParams)
+
+	if !ok {
+		return false
+	}
+
+	arg := hash.DefaultArgonHash()
+	passwordHashByte, passwordSaltByte := hash.ArgonStringDecode(req.HashedPassword, req.PasswordSalt)
+	err := arg.Compare(passwordHashByte, passwordSaltByte, []byte(e.password))
+
+	if err != nil {
+		return false
+	}
+
+	e.params.HashedPassword = req.HashedPassword
+	e.params.PasswordSalt = req.PasswordSalt
+
+	return reflect.DeepEqual(e.params, req)
+}
+
+func (e eqCreateUserParams) String() string {
+	return fmt.Sprintf("matches arg %v and %v", e.params, e.password)
+}
+
+func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
+	return eqCreateUserParams{
+		params:   arg,
+		password: password,
+	}
+}
+
 func TestCreateUserApi(t *testing.T) {
 	user, p := randomUser(t)
 
@@ -53,8 +92,14 @@ func TestCreateUserApi(t *testing.T) {
 				"email":    user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
+				req := db.CreateUserParams{
+					Username: user.Username,
+					Fullname: user.Fullname,
+					Email:    user.Email,
+				}
+
 				store.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
+					CreateUser(gomock.Any(), EqCreateUserParams(req, p)).
 					Times(1).Return(user, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
