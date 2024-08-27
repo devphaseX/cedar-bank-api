@@ -17,6 +17,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -216,4 +217,165 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 		Email:    user.Email,
 		Fullname: user.Fullname,
 	}, gotUser)
+}
+
+type eqSigninParams struct {
+	params db.GetUserByUniqueIDParams
+}
+
+func (e eqSigninParams) Matches(x interface{}) bool {
+	req, ok := x.(db.GetUserByUniqueIDParams)
+
+	if !ok {
+		return false
+	}
+
+	return req.Email == e.params.Email || req.Username == e.params.Username
+}
+func (e eqSigninParams) String() string {
+	return fmt.Sprintf("%v not match with the passed arg", e.params)
+}
+
+func EqSignInUserParams(arg db.GetUserByUniqueIDParams) gomock.Matcher {
+	return eqSigninParams{
+		params: arg,
+	}
+}
+
+func TestLoginUserApi(t *testing.T) {
+	user, p := randomUser(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mockdb.NewMockStore(ctrl)
+	server := newTestServer(t, store)
+
+	req := db.CreateUserParams{
+		Username: user.Username,
+		Fullname: user.Fullname,
+		Email:    user.Email,
+	}
+	store.EXPECT().
+		CreateUser(gomock.Any(), EqCreateUserParams(req, p)).
+		Times(1).Return(user, nil)
+
+	// Sign up the user first
+	signUpRecorder := httptest.NewRecorder()
+	signUpURL := "/auth/sign-up"
+	signUpBody, _ := json.Marshal(CreateUserRequest{
+		Username: user.Username,
+		Email:    user.Email,
+		Fullname: user.Fullname,
+		Password: p,
+	})
+	signUpRequest, err := http.NewRequest(http.MethodPost, signUpURL, bytes.NewBuffer(signUpBody))
+	require.NoError(t, err)
+	server.router.ServeHTTP(signUpRecorder, signUpRequest)
+	require.Equal(t, http.StatusCreated, signUpRecorder.Code)
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "ValidCredentialSignInWithEmail",
+			body: gin.H{
+				"id":       user.Email,
+				"password": p,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByUniqueID(gomock.Any(), EqSignInUserParams(db.GetUserByUniqueIDParams{
+						Email: pgtype.Text{
+							String: user.Email,
+							Valid:  true,
+						},
+					})).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "ValidCredentialSignInWithUsername",
+			body: gin.H{
+				"id":       user.Username,
+				"password": p,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByUniqueID(gomock.Any(), EqSignInUserParams(db.GetUserByUniqueIDParams{
+						Username: pgtype.Text{
+							String: user.Username,
+							Valid:  true,
+						},
+					})).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidCredentialSignInWithUsername",
+			body: gin.H{
+				"id":       user.Username,
+				"password": "wrongpassword",
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByUniqueID(gomock.Any(), EqSignInUserParams(db.GetUserByUniqueIDParams{
+						Username: pgtype.Text{
+							String: user.Username,
+							Valid:  true,
+						},
+					})).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidCredentialSignInWithEmail",
+			body: gin.H{
+				"id":       user.Email,
+				"password": "wrongpassword",
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByUniqueID(gomock.Any(), EqSignInUserParams(db.GetUserByUniqueIDParams{
+						Email: pgtype.Text{
+							String: user.Email,
+							Valid:  true,
+						},
+					})).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.buildStubs(store)
+
+			recorder := httptest.NewRecorder()
+			url := "/auth/sign-in"
+			b, _ := json.Marshal(tc.body)
+			body := bytes.NewBuffer(b)
+			request, err := http.NewRequest(http.MethodPost, url, body)
+			require.NoError(t, err)
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
 }

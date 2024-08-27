@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -63,6 +64,7 @@ type GetUserByUniqueIDParams struct {
 
 func (q *Queries) GetUserByUniqueID(ctx context.Context, arg GetUserByUniqueIDParams) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByUniqueID, arg.ID, arg.Email, arg.Username)
+	fmt.Println("arg", arg)
 	var i User
 	err := row.Scan(
 		&i.ID,

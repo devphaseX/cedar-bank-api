@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
 	"github.com/devphasex/cedar-bank-api/util/hash"
@@ -21,18 +22,22 @@ type CreateUserRequest struct {
 }
 
 type userResponse struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Fullname string `json:"fullname"`
+	ID                int64     `json:"id"`
+	Username          string    `json:"username"`
+	Email             string    `json:"email"`
+	Fullname          string    `json:"fullname"`
+	PasswordChangedAt time.Time `json:"password_changed_at"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 func newUserResponse(user db.User) userResponse {
 	return userResponse{
-		ID:       user.ID,
-		Fullname: user.Fullname,
-		Username: user.Username,
-		Email:    user.Email,
+		ID:                user.ID,
+		Fullname:          user.Fullname,
+		Username:          user.Username,
+		Email:             user.Email,
+		PasswordChangedAt: user.PasswordChangedAt.Time,
+		CreatedAt:         user.CreatedAt.Time,
 	}
 }
 
@@ -117,6 +122,8 @@ func (s *Server) signin(ctx *gin.Context) {
 			Valid:  true,
 		},
 	})
+
+	fmt.Println("users: ", user)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
