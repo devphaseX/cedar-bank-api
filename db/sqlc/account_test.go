@@ -7,6 +7,7 @@ import (
 
 	"github.com/devphasex/cedar-bank-api/util"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -94,22 +95,25 @@ func TestDeleteAccount(t *testing.T) {
 }
 
 func TestListAccount(t *testing.T) {
-	accounts := make([]Account, 0, 10)
-	l := cap(accounts)
-	for i := 0; i < l; i++ {
-		account := createRandomAccount(t)
-		accounts = append(accounts, account)
+	var lastInsertedAccount Account
+
+	for i := 0; i < 10; i++ {
+		lastInsertedAccount = createRandomAccount(t)
 	}
 
 	arg := GetAccountsParams{
 		Limit:  5,
-		Offset: 5,
+		Offset: 0,
+		UserID: pgtype.Int8{
+			Int64: lastInsertedAccount.OwnerID,
+			Valid: true,
+		},
 	}
 
 	queriedAccounts, err := testQueries.GetAccounts(context.Background(), arg)
 
 	require.NoError(t, err)
-	require.Len(t, queriedAccounts, 5)
+	require.NotEmpty(t, queriedAccounts)
 
 	for _, account := range queriedAccounts {
 		require.NotEmpty(t, account)

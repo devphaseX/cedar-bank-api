@@ -33,11 +33,22 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 		Amount:        req.Amount,
 	}
 
-	if !s.validateAccount(ctx, arg.FromAccountID, req.Currency, true) {
+	fromAccount, valid := s.validateAccount(ctx, arg.FromAccountID, req.Currency)
+
+	if !valid {
 		return
 	}
 
-	if !s.validateAccount(ctx, arg.ToAccountID, req.Currency, false) {
+	_, valid = s.validateAccount(ctx, arg.ToAccountID, req.Currency)
+
+	if !valid {
+		return
+	}
+
+	authUser := Auth(ctx)
+
+	if authUser.UserId != fromAccount.OwnerID {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
 		return
 	}
 
@@ -61,26 +72,17 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, sucessResponse(tx))
 }
 
-func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency string, ownerCheck bool) bool {
+func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency string) (db.Account, bool) {
 	account, err := s.store.GetAccountByID(ctx, accountID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("account [%d] not found", accountID)))
-			return false
+			return account, false
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
-	}
-
-	if ownerCheck {
-		authUser := Auth(ctx)
-
-		if authUser.UserId != account.OwnerID {
-			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
-			return false
-		}
+		return account, false
 	}
 
 	if account.Currency != currency {
@@ -88,8 +90,8 @@ func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency str
 			fmt.Errorf("account [%d] currency mismatch: expected %v but got %v",
 				accountID, account.Currency, currency)),
 		)
-		return false
+		return account, false
 	}
 
-	return true
+	return account, true
 }
