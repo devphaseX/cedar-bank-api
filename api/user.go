@@ -123,8 +123,6 @@ func (s *Server) signin(ctx *gin.Context) {
 		},
 	})
 
-	fmt.Println("users: ", user)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("Invalid credential email or password mismatch")))
