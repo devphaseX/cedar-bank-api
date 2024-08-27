@@ -178,7 +178,8 @@ func TestCreateUserApi(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 
 			tc.buildStubs(store)
-			server := NewServer(store, nil)
+
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/auth/sign-up"
 
@@ -203,13 +204,13 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 	require.NoError(t, err)
 	require.True(t, resp.Status)
 
-	var gotUser CreateUserResponse
+	var gotUser userResponse
 	dataJSON, err := json.Marshal(resp.Data)
 
 	require.NoError(t, err)
 	err = json.Unmarshal(dataJSON, &gotUser)
 	require.NoError(t, err)
-	require.Equal(t, CreateUserResponse{
+	require.Equal(t, userResponse{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,

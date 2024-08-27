@@ -41,7 +41,11 @@ func main() {
 	}
 	defer conn.Close()
 
-	server := api.NewServer(db.NewStore(conn), config)
+	server, err := api.NewServer(db.NewStore(conn), config)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if err := server.Start(config.ServerAddress); err != nil {
 		log.Fatal(err)

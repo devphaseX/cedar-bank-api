@@ -20,11 +20,20 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"min=8,required"`
 }
 
-type CreateUserResponse struct {
+type userResponse struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Fullname string `json:"fullname"`
+}
+
+func newUserResponse(user db.User) userResponse {
+	return userResponse{
+		ID:       user.ID,
+		Fullname: user.Fullname,
+		Username: user.Username,
+		Email:    user.Email,
+	}
 }
 
 func (s *Server) createUser(ctx *gin.Context) {
@@ -71,12 +80,7 @@ func (s *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	resp := CreateUserResponse{
-		ID:       user.ID,
-		Fullname: user.Fullname,
-		Username: user.Username,
-		Email:    user.Email,
-	}
+	resp := newUserResponse(user)
 
 	ctx.JSON(http.StatusCreated, sucessResponse(resp, "user created successfully"))
 	return
@@ -85,6 +89,11 @@ func (s *Server) createUser(ctx *gin.Context) {
 type SigninRequest struct {
 	ID       string `json:"id" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type signinResponse struct {
+	AccessToken string       `json:"access_token"`
+	User        userResponse `json:"user"`
 }
 
 func (s *Server) signin(ctx *gin.Context) {
@@ -126,14 +135,19 @@ func (s *Server) signin(ctx *gin.Context) {
 		return
 	}
 
-	resp := CreateUserResponse{
-		ID:       user.ID,
-		Fullname: user.Fullname,
-		Username: user.Username,
-		Email:    user.Email,
+	resp := newUserResponse(user)
+
+	authToken, err := s.tokenMaker.CreateToken(user.ID, user.Email, s.config.AccessTokenTime)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
-	ctx.JSON(http.StatusOK, sucessResponse(map[string]any{
-		"user": resp,
-	}, "account signin successfully"))
+	response := signinResponse{
+		AccessToken: authToken,
+		User:        resp,
+	}
+
+	ctx.JSON(http.StatusOK, sucessResponse(response, "account signin successfully"))
 }
