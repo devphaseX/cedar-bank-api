@@ -17,6 +17,7 @@ LIMIT 1 FOR NO KEY UPDATE;
 SELECT * FROM accounts
 WHERE ($3::int[] IS NULL OR id = ANY($3::int[]))
   AND (sqlc.narg('balance')::int IS NULL OR balance < sqlc.narg('balance'))
+  AND (sqlc.narg('user_id')::bigint IS NULL OR sqlc.narg('user_id')::bigint = accounts.owner_id)
 OFFSET sqlc.arg('offset')
 LIMIT sqlc.arg('limit');
 

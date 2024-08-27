@@ -33,11 +33,11 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 		Amount:        req.Amount,
 	}
 
-	if !s.validateAccount(ctx, arg.FromAccountID, req.Currency) {
+	if !s.validateAccount(ctx, arg.FromAccountID, req.Currency, true) {
 		return
 	}
 
-	if !s.validateAccount(ctx, arg.ToAccountID, req.Currency) {
+	if !s.validateAccount(ctx, arg.ToAccountID, req.Currency, false) {
 		return
 	}
 
@@ -61,7 +61,7 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, sucessResponse(tx))
 }
 
-func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency string) bool {
+func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency string, ownerCheck bool) bool {
 	account, err := s.store.GetAccountByID(ctx, accountID)
 
 	if err != nil {
@@ -72,6 +72,15 @@ func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency str
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return false
+	}
+
+	if ownerCheck {
+		authUser := Auth(ctx)
+
+		if authUser.UserId != account.OwnerID {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
+			return false
+		}
 	}
 
 	if account.Currency != currency {

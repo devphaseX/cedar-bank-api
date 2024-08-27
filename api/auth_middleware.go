@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -16,7 +17,7 @@ const (
 	authorizationTypeBearer = "bearer"
 )
 
-func Auth(tokenMaker token.Maker) gin.HandlerFunc {
+func AuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 		if len(authorizationHeader) == 0 {
@@ -57,4 +58,15 @@ func Auth(tokenMaker token.Maker) gin.HandlerFunc {
 
 		ctx.Next()
 	}
+}
+
+func Auth(ctx *gin.Context) *token.Payload {
+	payload, ok := ctx.MustGet(authorizationPayload).(*token.Payload)
+
+	if !ok {
+		log.Fatal("payload not conform to the *Payload type")
+		return nil
+	}
+
+	return payload
 }

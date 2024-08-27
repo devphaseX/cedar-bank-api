@@ -89,22 +89,25 @@ const getAccounts = `-- name: GetAccounts :many
 SELECT id, owner_id, balance, currency, created_at FROM accounts
 WHERE ($3::int[] IS NULL OR id = ANY($3::int[]))
   AND ($1::int IS NULL OR balance < $1)
-OFFSET $2
-LIMIT $4
+  AND ($2::bigint IS NULL OR $2::bigint = accounts.owner_id)
+OFFSET $4
+LIMIT $5
 `
 
 type GetAccountsParams struct {
 	Balance pgtype.Int4 `json:"balance"`
-	Offset  int64       `json:"offset"`
+	UserID  pgtype.Int8 `json:"user_id"`
 	Column3 []int32     `json:"column_3"`
+	Offset  int64       `json:"offset"`
 	Limit   int64       `json:"limit"`
 }
 
 func (q *Queries) GetAccounts(ctx context.Context, arg GetAccountsParams) ([]Account, error) {
 	rows, err := q.db.Query(ctx, getAccounts,
 		arg.Balance,
-		arg.Offset,
+		arg.UserID,
 		arg.Column3,
+		arg.Offset,
 		arg.Limit,
 	)
 	if err != nil {

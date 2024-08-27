@@ -9,10 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CreateAccountRequest struct {
-	OwnerID  int64  `json:"owner_id" binding:"min=1"`
 	Currency string `json:"currency" binding:"oneof=currency"`
 }
 
@@ -24,8 +24,10 @@ func (s *Server) createAccount(ctx *gin.Context) {
 		return
 	}
 
+	authUser := Auth(ctx)
+
 	arg := db.CreateAccountParams{
-		OwnerID:  req.OwnerID,
+		OwnerID:  authUser.UserId,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -63,7 +65,14 @@ func (s *Server) getAccountByID(ctx *gin.Context) {
 		return
 	}
 
+	authUser := Auth(ctx)
+
 	account, err := s.store.GetAccountByID(ctx, req.ID)
+
+	if account.OwnerID != authUser.UserId {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not authorized")))
+		return
+	}
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -91,9 +100,15 @@ func (s *Server) getAccountList(ctx *gin.Context) {
 		return
 	}
 
+	authUser := Auth(ctx)
+
 	arg := db.GetAccountsParams{
 		Offset: int64((req.Page - 1) * req.PerPage),
 		Limit:  int64(req.PerPage),
+		UserID: pgtype.Int8{
+			Valid: true,
+			Int64: authUser.UserId,
+		},
 	}
 
 	accounts, err := s.store.GetAccounts(ctx, arg)
