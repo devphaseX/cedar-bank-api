@@ -86,7 +86,6 @@ func (s *PgStore) TransferTx(ctx context.Context, arg TransferTxParams) (*Transf
 
 		// Check if the sender has sufficient funds
 		senderBalance := fromAccount.Balance
-
 		if senderBalance < arg.Amount {
 			return ErrFundNotSufficient
 		}

@@ -23,6 +23,7 @@ func (s *Server) createTransfer(ctx *gin.Context) {
 	var req TransferRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fmt.Println("data error", prettyValidateError(err))
 		ctx.JSON(http.StatusBadRequest, prettyValidateError(err))
 		return
 	}
@@ -85,7 +86,7 @@ func (s *Server) validateAccount(ctx *gin.Context, accountID int64, currency str
 	}
 
 	if account.Currency != currency {
-		ctx.JSON(http.StatusNotFound, errorResponse(
+		ctx.JSON(http.StatusForbidden, errorResponse(
 			fmt.Errorf("account [%d] currency mismatch: expected %v but got %v",
 				accountID, account.Currency, currency)),
 		)
