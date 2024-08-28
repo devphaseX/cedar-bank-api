@@ -9,6 +9,7 @@ import (
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
 	"github.com/devphasex/cedar-bank-api/util/hash"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -97,8 +98,12 @@ type SigninRequest struct {
 }
 
 type signinResponse struct {
-	AccessToken string       `json:"access_token"`
-	User        userResponse `json:"user"`
+	SessionID             string       `json:"session_id"`
+	AccessToken           string       `json:"access_token"`
+	AccessTokenExpiredAt  time.Time    `json:"access_token_expired_at"`
+	RefreshToken          string       `json:"refresh_token"`
+	RefreshTokenExpiredAt time.Time    `json:"refresh_token_expired_at"`
+	User                  userResponse `json:"user"`
 }
 
 func (s *Server) signin(ctx *gin.Context) {
@@ -140,18 +145,48 @@ func (s *Server) signin(ctx *gin.Context) {
 		return
 	}
 
-	resp := newUserResponse(user)
-
-	authToken, err := s.tokenMaker.CreateToken(user.ID, user.Email, s.config.AccessTokenTime)
+	accessToken, accessPayload, err := s.tokenMaker.CreateToken(user.ID, user.Email, s.config.AccessTokenTime)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, user.Email, s.config.RefreshTokenTime)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
+		ID:        pgtype.UUID{Bytes: [16]byte(refreshPayload.ID), Valid: true},
+		OwnerID:   user.ID,
+		UserAgent: "",
+		ClientIp: pgtype.Text{
+			String: "",
+			Valid:  true,
+		},
+		RefreshToken: refreshToken,
+		ExpiredAt: pgtype.Timestamptz{
+			Time:  refreshPayload.ExpiresAt.Time,
+			Valid: true,
+		},
+	})
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	resp := newUserResponse(user)
 	response := signinResponse{
-		AccessToken: authToken,
-		User:        resp,
+		SessionID:             uuid.UUID(session.ID.Bytes).String(),
+		AccessToken:           accessToken,
+		AccessTokenExpiredAt:  accessPayload.ExpiresAt.Time,
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiredAt: refreshPayload.ExpiresAt.Time,
+		User:                  resp,
 	}
 
 	ctx.JSON(http.StatusOK, sucessResponse(response, "account signin successfully"))

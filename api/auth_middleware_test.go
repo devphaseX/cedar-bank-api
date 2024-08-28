@@ -13,7 +13,7 @@ import (
 )
 
 func addAuthorization(t *testing.T, request *http.Request, tokeMaker token.Maker, authorizationType string, userID int64, email string, duration time.Duration) {
-	token, err := tokeMaker.CreateToken(userID, email, duration)
+	token, _, err := tokeMaker.CreateToken(userID, email, duration)
 
 	require.NoError(t, err)
 

@@ -67,6 +67,21 @@ func (mr *MockStoreMockRecorder) CreateBalanceEntry(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBalanceEntry", reflect.TypeOf((*MockStore)(nil).CreateBalanceEntry), arg0, arg1)
 }
 
+// CreateSession mocks base method.
+func (m *MockStore) CreateSession(arg0 context.Context, arg1 db.CreateSessionParams) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockStoreMockRecorder) CreateSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockStore)(nil).CreateSession), arg0, arg1)
+}
+
 // CreateTransfer mocks base method.
 func (m *MockStore) CreateTransfer(arg0 context.Context, arg1 db.CreateTransferParams) (db.Transfer, error) {
 	m.ctrl.T.Helper()
@@ -184,6 +199,36 @@ func (m *MockStore) GetBalanceEntry(arg0 context.Context, arg1 int64) (db.Entry,
 func (mr *MockStoreMockRecorder) GetBalanceEntry(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceEntry", reflect.TypeOf((*MockStore)(nil).GetBalanceEntry), arg0, arg1)
+}
+
+// GetSessionByUniqueID mocks base method.
+func (m *MockStore) GetSessionByUniqueID(arg0 context.Context, arg1 db.GetSessionByUniqueIDParams) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionByUniqueID", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionByUniqueID indicates an expected call of GetSessionByUniqueID.
+func (mr *MockStoreMockRecorder) GetSessionByUniqueID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionByUniqueID", reflect.TypeOf((*MockStore)(nil).GetSessionByUniqueID), arg0, arg1)
+}
+
+// GetSessionList mocks base method.
+func (m *MockStore) GetSessionList(arg0 context.Context, arg1 db.GetSessionListParams) ([]db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionList", arg0, arg1)
+	ret0, _ := ret[0].([]db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionList indicates an expected call of GetSessionList.
+func (mr *MockStoreMockRecorder) GetSessionList(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionList", reflect.TypeOf((*MockStore)(nil).GetSessionList), arg0, arg1)
 }
 
 // GetUserByUniqueID mocks base method.
