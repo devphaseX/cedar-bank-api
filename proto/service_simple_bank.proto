@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package pb;
 
+import "google/api/annotations.proto";
 import "rpc_signin_user.proto";
 import "rpc_create_user.proto";
 
@@ -10,6 +11,17 @@ option go_package = "github.com/devphasex/cedar-bank-api/pb";
 
 
 service SimpleBank {
-    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-    rpc SigninUser(CreateSigninRequest) returns (CreateSigninResponse);
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+        option (google.api.http) =  {
+            post: "/v1/auth/sign-up",
+            body:"*"
+        };
+    }
+
+    rpc SigninUser(CreateSigninRequest) returns (CreateSigninResponse) {
+      option(google.api.http) = {
+          post: "/v1/auth/sign-in",
+          body:"*"
+      };
+    }
 }

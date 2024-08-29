@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/devphasex/cedar-bank-api/api"
@@ -11,9 +12,12 @@ import (
 	"github.com/devphasex/cedar-bank-api/gapi"
 	"github.com/devphasex/cedar-bank-api/pb"
 	"github.com/devphasex/cedar-bank-api/util"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func main() {
@@ -46,7 +50,9 @@ func main() {
 	}
 	defer conn.Close()
 
-	runGrpcServer(db.NewStore(conn), config)
+	store := db.NewStore(conn)
+	go runGrpcServer(store, config)
+	runGrpcGatewayServer(store, config)
 }
 
 func runGinServer(store db.Store, config *util.Config) {
@@ -77,7 +83,7 @@ func runGrpcServer(store db.Store, config *util.Config) {
 	defer ln.Close()
 
 	if err != nil {
-		log.Fatal("cannot create listerner")
+		log.Fatal("cannot create listerner:", err)
 	}
 
 	log.Printf("start gRPC server at %s", ln.Addr().String())
@@ -85,5 +91,49 @@ func runGrpcServer(store db.Store, config *util.Config) {
 
 	if err != nil {
 		log.Fatal("cannot start gRPC server:", err)
+	}
+}
+
+func runGrpcGatewayServer(store db.Store, config *util.Config) {
+	var err error
+	grpcMux := runtime.NewServeMux(
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
+			MarshalOptions: protojson.MarshalOptions{
+				UseProtoNames:   true,
+				EmitUnpopulated: true,
+			},
+			UnmarshalOptions: protojson.UnmarshalOptions{
+				DiscardUnknown: true,
+			},
+		}),
+		runtime.WithIncomingHeaderMatcher(runtime.DefaultHeaderMatcher),
+	)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Assuming your gRPC server is running on a different port, e.g., ":9090"
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())} // gRPC connection options
+
+	err = pb.RegisterSimpleBankHandlerFromEndpoint(ctx, grpcMux, config.GrpcServerAddress, opts)
+	if err != nil {
+		log.Fatal("cannot register handler from endpoint:", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", grpcMux)
+
+	// Add CORS middleware if necessary
+	// handler := cors.Default().Handler(mux)
+
+	ln, err := net.Listen("tcp", config.HttpServerAddress)
+	if err != nil {
+		log.Fatal("cannot create listener: ", err)
+	}
+	defer ln.Close()
+
+	log.Printf("starting HTTP server at %s", ln.Addr().String())
+	err = http.Serve(ln, mux)
+	if err != nil {
+		log.Fatal("cannot start HTTP server:", err)
 	}
 }

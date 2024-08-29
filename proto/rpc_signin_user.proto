@@ -10,8 +10,8 @@ option go_package = "github.com/devphasex/cedar-bank-api/pb";
 
 
 message CreateSigninRequest {
-   string   ID  = 1;
-   string	Password  = 2;
+   string ID = 1 [json_name = "id"];
+   string Password = 2 [json_name = "password"];
 }
 
 message CreateSigninResponse {

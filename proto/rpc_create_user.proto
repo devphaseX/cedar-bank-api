@@ -8,10 +8,10 @@ option go_package = "github.com/devphasex/cedar-bank-api/pb";
 
 
 message CreateUserRequest {
-   string   Username  = 1;
-   string 	Email     = 2;
-   string	Fullname  = 3;
-   string	Password  = 4;
+   string   Username  = 1 [json_name = "username"];
+   string 	Email     = 2 [json_name = "email"];
+   string	Fullname  = 3 [json_name = "fullname"];
+   string	Password  = 4 [json_name = "password"];
 }
 
 message CreateUserResponse {
