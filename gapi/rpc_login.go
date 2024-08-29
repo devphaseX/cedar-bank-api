@@ -59,12 +59,14 @@ func (s *GrpcServer) SigninUser(ctx context.Context, req *pb.CreateSigninRequest
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	mtdata := s.extraMetadata(ctx)
+
 	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:        pgtype.UUID{Bytes: [16]byte(refreshPayload.ID), Valid: true},
 		OwnerID:   user.ID,
-		UserAgent: "",
+		UserAgent: mtdata.UserAgent,
 		ClientIp: pgtype.Text{
-			String: "",
+			String: mtdata.ClientIp,
 			Valid:  true,
 		},
 		RefreshToken: refreshToken,
@@ -79,7 +81,7 @@ func (s *GrpcServer) SigninUser(ctx context.Context, req *pb.CreateSigninRequest
 	}
 
 	rsp := &pb.CreateSigninResponse{
-		SessionID:             uuid.UUID(session.ID.Bytes).String(),
+		SessionId:             uuid.UUID(session.ID.Bytes).String(),
 		AccessToken:           accessToken,
 		AccessTokenExpiredAt:  timestamppb.New(accessPayload.ExpiresAt.Time),
 		RefreshToken:          refreshToken,

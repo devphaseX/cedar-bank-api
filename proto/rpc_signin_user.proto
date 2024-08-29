@@ -15,10 +15,10 @@ message CreateSigninRequest {
 }
 
 message CreateSigninResponse {
-    string sessionID                                   =1;
-    string accessToken                                 =2;
-    google.protobuf.Timestamp accessTokenExpiredAt     =3;
-    string refreshToken                                =4;
-    google.protobuf.Timestamp refreshTokenExpiredAt    =5;
-    User user                                          =6;
+    string session_id                                    =1;
+    string access_token                                  =2;
+    google.protobuf.Timestamp access_token_expired_at    =3;
+    string refresh_token                                 =4;
+    google.protobuf.Timestamp refresh_token_expired_at   =5;
+    User user                                            =6;
 }
