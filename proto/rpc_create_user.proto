@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+
+option go_package = "github.com/devphasex/cedar-bank-api/pb";
+
+
+message CreateUserRequest {
+   string   Username  = 1;
+   string 	Email     = 2;
+   string	Fullname  = 3;
+   string	Password  = 4;
+}
+
+message CreateUserResponse {
+   User User = 1;
+}

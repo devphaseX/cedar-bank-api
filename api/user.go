@@ -162,9 +162,9 @@ func (s *Server) signin(ctx *gin.Context) {
 	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:        pgtype.UUID{Bytes: [16]byte(refreshPayload.ID), Valid: true},
 		OwnerID:   user.ID,
-		UserAgent: "",
+		UserAgent: ctx.Request.UserAgent(),
 		ClientIp: pgtype.Text{
-			String: "",
+			String: ctx.ClientIP(),
 			Valid:  true,
 		},
 		RefreshToken: refreshToken,

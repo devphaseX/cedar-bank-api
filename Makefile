@@ -19,8 +19,12 @@ test:
 mock:
 		mockgen -destination db/mock/store.go -package mockdb github.com/devphasex/cedar-bank-api/db/sqlc Store
 
+proto:
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+    --go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+   proto/*.proto
 
 server:
 	go run .
 
-.PHONY: createdb dropdb postgres migrate sqlc
+.PHONY: createdb dropdb postgres migrate sqlc proto

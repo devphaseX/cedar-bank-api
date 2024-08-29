@@ -21,4 +21,6 @@ AND (sqlc.narg('owner_id')::bigint IS NULL OR sqlc.narg('owner_id')::bigint  = s
 SELECT * FROM sessions
 where (sqlc.narg('id')::uuid IS NULL OR sqlc.narg('id')::uuid = sessions.id)
 AND (sqlc.narg('owner_id')::bigint IS NULL OR sqlc.narg('owner_id')::bigint  = sessions.owner_id)
+AND (sqlc.narg('refresh_token')::text IS NULL OR sqlc.narg('refresh_token')::text  = sessions.refresh_token)
+
 LIMIT 1;

@@ -63,16 +63,19 @@ const getSessionByUniqueID = `-- name: GetSessionByUniqueID :one
 SELECT id, owner_id, user_agent, refresh_token, client_ip, is_blocked, expired_at, created_at FROM sessions
 where ($1::uuid IS NULL OR $1::uuid = sessions.id)
 AND ($2::bigint IS NULL OR $2::bigint  = sessions.owner_id)
+AND ($3::text IS NULL OR $3::text  = sessions.refresh_token)
+
 LIMIT 1
 `
 
 type GetSessionByUniqueIDParams struct {
-	ID      pgtype.UUID `json:"id"`
-	OwnerID pgtype.Int8 `json:"owner_id"`
+	ID           pgtype.UUID `json:"id"`
+	OwnerID      pgtype.Int8 `json:"owner_id"`
+	RefreshToken pgtype.Text `json:"refresh_token"`
 }
 
 func (q *Queries) GetSessionByUniqueID(ctx context.Context, arg GetSessionByUniqueIDParams) (Session, error) {
-	row := q.db.QueryRow(ctx, getSessionByUniqueID, arg.ID, arg.OwnerID)
+	row := q.db.QueryRow(ctx, getSessionByUniqueID, arg.ID, arg.OwnerID, arg.RefreshToken)
 	var i Session
 	err := row.Scan(
 		&i.ID,

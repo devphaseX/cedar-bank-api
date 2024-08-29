@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"time"
 
 	"github.com/devphasex/cedar-bank-api/api"
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
+	"github.com/devphasex/cedar-bank-api/gapi"
+	"github.com/devphasex/cedar-bank-api/pb"
 	"github.com/devphasex/cedar-bank-api/util"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -41,13 +46,44 @@ func main() {
 	}
 	defer conn.Close()
 
-	server, err := api.NewServer(db.NewStore(conn), config)
+	runGrpcServer(db.NewStore(conn), config)
+}
+
+func runGinServer(store db.Store, config *util.Config) {
+	server, err := api.NewServer(store, config)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := server.Start(config.ServerAddress); err != nil {
+	if err := server.Start(config.HttpServerAddress); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func runGrpcServer(store db.Store, config *util.Config) {
+	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
+	server, err := gapi.NewGrpcServer(store, config)
+
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
+
+	pb.RegisterSimpleBankServer(grpcServer, server)
+	reflection.Register(grpcServer)
+
+	ln, err := net.Listen("tcp", config.GrpcServerAddress)
+
+	defer ln.Close()
+
+	if err != nil {
+		log.Fatal("cannot create listerner")
+	}
+
+	log.Printf("start gRPC server at %s", ln.Addr().String())
+	err = grpcServer.Serve(ln)
+
+	if err != nil {
+		log.Fatal("cannot start gRPC server:", err)
 	}
 }

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+import "google/protobuf/timestamp.proto";
+
+
+option go_package = "github.com/devphasex/cedar-bank-api/pb";
+
+
+message CreateSigninRequest {
+   string   ID  = 1;
+   string	Password  = 2;
+}
+
+message CreateSigninResponse {
+    string sessionID                                   =1;
+    string accessToken                                 =2;
+    google.protobuf.Timestamp accessTokenExpiredAt     =3;
+    string refreshToken                                =4;
+    google.protobuf.Timestamp refreshTokenExpiredAt    =5;
+    User user                                          =6;
+}
