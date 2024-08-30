@@ -5,10 +5,22 @@ package pb;
 import "google/api/annotations.proto";
 import "rpc_signin_user.proto";
 import "rpc_create_user.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 
 option go_package = "github.com/devphasex/cedar-bank-api/pb";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Simple bank Api";
+    version: "1.1";
+    contact: {
+      name: "Ayomide Lawal";
+      url: "https://github.com/devphaseX";
+      email: "ayomidelawal700@gmail.com";
+    };
+  };
+};
 
 service SimpleBank {
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
@@ -16,12 +28,22 @@ service SimpleBank {
             post: "/v1/auth/sign-up",
             body:"*"
         };
+
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+             description: "Use this API to create a new suer";
+             summary: "Create new user";
+        };
     }
 
     rpc SigninUser(CreateSigninRequest) returns (CreateSigninResponse) {
       option(google.api.http) = {
           post: "/v1/auth/sign-in",
           body:"*"
+      };
+
+      option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+           description: "Use this API to login user and get access and refresh token";
+           summary: "Login user";
       };
     }
 }

@@ -9,11 +9,13 @@ import (
 
 	"github.com/devphasex/cedar-bank-api/api"
 	db "github.com/devphasex/cedar-bank-api/db/sqlc"
+	_ "github.com/devphasex/cedar-bank-api/doc/statik"
 	"github.com/devphasex/cedar-bank-api/gapi"
 	"github.com/devphasex/cedar-bank-api/pb"
 	"github.com/devphasex/cedar-bank-api/util"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rakyll/statik/fs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -121,6 +123,15 @@ func runGrpcGatewayServer(store db.Store, config *util.Config) {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", grpcMux)
+
+	statikFs, err := fs.New()
+
+	if err != nil {
+		log.Fatal("cannot create statik fs:", err)
+	}
+
+	swaggerHandler := http.StripPrefix("/swagger/", http.FileServer(statikFs))
+	mux.Handle("/swagger/", swaggerHandler)
 
 	// Add CORS middleware if necessary
 	// handler := cors.Default().Handler(mux)
